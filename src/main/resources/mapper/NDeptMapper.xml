@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.net.easyinfo.mapper.NDeptMapper" >
+  <resultMap id="BaseResultMap" type="cn.net.easyinfo.entity.Departments" >
+    <id column="id" property="id" jdbcType="INTEGER" />
+    <result column="fid" property="fid" jdbcType="INTEGER" />
+    <result column="name" property="name" jdbcType="VARCHAR" />
+    <result column="roleid" property="roleid" jdbcType="INTEGER" />
+    <result column="sort" property="sort" jdbcType="INTEGER" />
+    <result column="flag" property="flag" jdbcType="TINYINT" />
+    <result column="noticeType" property="noticetype" jdbcType="TINYINT" />
+
+    <collection property="children" ofType="cn.net.easyinfo.entity.Departments"
+    select="cn.net.easyinfo.mapper.NDeptMapper.selectDeptById" column="id"></collection>
+  </resultMap>
+
+  <select id="selectDeptById" resultMap="BaseResultMap">
+    select d.id,d.fid,d.name from departments d where d.fid = #{id}
+  </select>
+
+  <select id="getSonDeptByDeptId" resultType="cn.net.easyinfo.entity.Tree" parameterType="map">
+    select id from departments where fid = #{deptid}
+  </select>
+
+  <select id="getSonDeptidByDeptId" resultType="cn.net.easyinfo.entity.Departments">
+        select id,fid,name from departments WHERE fid = #{fid};
+    </select>
+
+  <!-- <select id="getDeptByFid" parameterType="map" resultType="cn.net.easyinfo.report.entity.Department">
+		SELECT dd.id,dd.name,(SELECT id FROM department WHERE fid=dd.id LIMIT 1) mark
+		FROM department dd WHERE dd.fid=#{deptid}
+  </select> -->
+
+  <select id="getDeptFidById" resultType="cn.net.easyinfo.entity.Departments">
+      select fid from departments where id = #{id}
+  </select>
+
+  <!-- 递归函数,循环得到上级部门 -->
+  <select id="queryFatherDepartInfo" resultType="String" parameterType="map">
+		select queryFatherDepartInfo(${deptid})
+	</select>
+
+  <select id="selectDeptsById" resultType="cn.net.easyinfo.entity.Departments">
+    select name from departments where id = #{id} or fid = #{id}
+  </select>
+
+  <!-- 根据部门名称查询 -->
+  <select id="selectByDeptName" resultType="cn.net.easyinfo.entity.Departments" parameterType="map">
+    SELECT d.id,d.fid,d.`name` FROM departments d WHERE d.`name` = #{name}
+  </select>
+
+  <!-- 部门顺序调整 -->
+  <select id="selMaxSortByFid" parameterType="map" resultType="integer">
+		SELECT MAX(sort) FROM departments d WHERE d.fid = #{fid}
+	</select>
+
+  <select id="getRootdept" parameterType="map" resultType="cn.net.easyinfo.entity.Departments">
+    SELECT d.* FROM departments d
+    WHERE
+    <choose>
+      <when test="deptid==1">d.id = 1</when>
+      <otherwise>d.id = queryFatherByDepart(${deptid})</otherwise>
+    </choose>
+  </select>
+
+  <select id="getDeep" resultType="cn.net.easyinfo.entity.Departments" parameterType="map">
+		SELECT d.id,d.fid,d.`name` FROM departments d WHERE id = #{fdeptid}
+	</select>
+
+  <!-- 添加部门 -->
+  <insert id="addDepart" parameterType="cn.net.easyinfo.entity.Departments">
+    INSERT INTO departments (fid,name, sort, setAdmin) VALUES(#{fid},#{name}, #{sort}, #{setAdmin})
+    <selectKey resultType="java.lang.Integer"  order="AFTER" keyProperty="id" >
+      SELECT LAST_INSERT_ID() AS id
+    </selectKey>
+  </insert>
+
+
+  <!-- 修改部门名称 -->
+  <update id="updateDept" parameterType="map">
+		UPDATE departments SET name = #{name} WHERE id = ${deptid}
+	</update>
+
+  <!-- 递归函数,循环得到下级部门 -->
+  <select id="queryChildrenDepartInfo" resultType="String" parameterType="Integer">
+		select queryChildrenDepartInfo(#{id})
+	</select>
+
+
+  <!-- 删除部门 -->
+  <delete id="deleteDepart" parameterType="map">
+		DELETE departments.*,`user`.*,wangpy.*,dept_right.*
+		FROM departments
+		LEFT JOIN dept_right ON departments.id=dept_right.deptid
+		LEFT JOIN user ON `user`.deptid=departments.id
+		LEFT JOIN wangpy ON wangpy.userid=user.id
+		WHERE departments.id IN (${ids})
+	</delete>
+
+
+
+</mapper>

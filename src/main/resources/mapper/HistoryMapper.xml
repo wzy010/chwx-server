@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.net.easyinfo.mapper.HistoryMapper">
+    <!-- 查询历史记录 -->
+    <select id="selectHistory" resultType="cn.net.easyinfo.entity.History" parameterType="map">
+        SELECT history.id,history.username name,
+        history.operType,history.result,
+        history.operTime,history.ip,history.city
+        FROM history,user
+        WHERE history.userId=user.id and user.deptid in (${deptids})
+        <if test="starttime != null and starttime != ''">
+            <![CDATA[
+		AND history.operTime >= #{starttime}
+		]]>
+        </if>
+        <if test="endtime != null and endtime != ''">
+            <![CDATA[
+		AND history.operTime <= #{endtime}
+		]]>
+        </if>
+        <if test="sname != null and sname != ''">
+            AND history.userid = #{sname}
+        </if>
+        ORDER BY history.operTime DESC
+    </select>
+
+</mapper>

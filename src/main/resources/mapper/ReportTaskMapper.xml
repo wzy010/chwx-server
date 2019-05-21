@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.net.easyinfo.mapper.ReportTaskMapper" >
+    <insert id="addReportTask" parameterType="map" >
+      insert into report_user (type,typebig,userid,markto,address,ptime)
+      values(#{type},#{typeBig},#{userid},#{markto},#{address},now())
+      <selectKey resultType="java.lang.Integer" order="AFTER" keyProperty="id">
+          select last_insert_id() as id
+      </selectKey>
+  </insert>
+
+    <update id="updateNum" parameterType="map">
+		update report_user set number=#{number},score=#{scoreupdate}
+		where id=#{id} AND userid=#{userid}
+	</update>
+
+    <update id="updateReportRead" parameterType="map">
+		update report_user set isRead=1 where userid=#{userid}
+	</update>
+
+    <select id="reportAudit" resultType="cn.net.easyinfo.report.entity.Report" parameterType="map">
+        SELECT t.id,t.number,t.status,t.markto mark,t.address,t.type,
+        t.ptime,tt.value typeName,u.name,tt.score,tt.maxscore
+        FROM report_user t,report_type_big tt,user u
+        WHERE t.typebig=tt.id and t.type &gt; 1
+        AND t.userid=u.id and u.deptid IN (${deptids})
+        <if test="starttime != ''">
+            AND t.ptime &gt;= #{ptime}
+        </if>
+        <if test="endtime != ''">
+            AND t.ptime &lt;= #{endtime}
+        </if>
+        <if test="status != null and status != '' and status != '-1'">
+            AND t.status = #{status}
+        </if>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="byReportBysubId" resultType="cn.net.easyinfo.report.entity.Report" parameterType="map">
+		SELECT tt.id,t.userid,t.ptime,tt.maxscore,tt.havemax type
+		FROM report_user t,report_type_big tt
+		where t.id=#{id} AND t.typebig=tt.id
+	</select>
+    <select id="bySumScoreByuser" resultType="int" parameterType="map">
+		SELECT ifnull(SUM(score),0) FROM report_user
+		WHERE userid=#{uduserid} AND ptime BETWEEN #{udstarttime} AND #{udendtime}
+	</select>
+    <update id="updateAudit" parameterType="map">
+		UPDATE report_user SET score=#{score},mark=#{mark},status=#{status},auuserid=#{userid}
+		WHERE id=#{id}
+	</update>
+
+    <select id="getLastReportId" resultType="int">
+        select id from report_user order by id DESC limit 1;
+    </select>
+
+    <select id="taskReportScoreByuser" resultType="cn.net.easyinfo.report.entity.Report" parameterType="map">
+		SELECT m.id,m.name username,dd.`name` value,tmp.number,tmp.score FROM
+		user m LEFT JOIN departments dd ON m.deptid=dd.id
+		LEFT JOIN(
+			SELECT u.id,(ifnull(SUM(t.score),0)+ifnull(SUM(score2),0)) score,SUM(number) number
+			FROM report_user t,user u
+			WHERE t.userid=u.id AND t.`status`=2
+			<if test="starttime != '' and endtime !='null'">
+				AND t.ptime &gt;= #{starttime}
+			</if>
+			<if test="endtime != '' and endtime !='null'">
+				AND t.ptime &lt;= #{endtime}
+			</if>
+			<if test="isAu == 1">
+				AND t.type &gt; #{isAu}
+			</if>
+			GROUP BY t.userid
+			ORDER BY score DESC
+		) tmp ON m.id=tmp.id
+		WHERE m.deptid IN (${deptids})
+		ORDER BY number DESC	
+	</select>
+
+	<select id="getDeptByFid" parameterType="map" resultType="cn.net.easyinfo.report.entity.Department">
+		SELECT dd.id,dd.name,(SELECT id FROM departments WHERE fid=dd.id LIMIT 1) mark
+		FROM departments dd WHERE dd.fid=#{deptid}
+	</select>
+
+	<select id="byDeptReport" resultType="cn.net.easyinfo.report.entity.Report" parameterType="map">
+		SELECT (ifnull(SUM(t.score),0)+ifnull(SUM(score2),0)) score,ifnull(SUM(number),0) number
+		FROM report_user t,user u
+		WHERE t.userid=u.id AND t.`status`=2
+			and u.deptid in (${deptids})
+		<if test="starttime != ''">
+			AND t.ptime &gt;= #{starttime}
+		</if>
+		<if test="endtime != ''">
+			AND t.ptime &lt;= #{endtime}
+		</if>
+	</select>
+
+    <!-- 注意固定参数 -->
+    <!-- <select id="taskReportScoreByuser" resultType="cn.net.easyinfo.report.entity.Report" parameterType="map">
+        SELECT m.id,m.name username,dd.`name` value,tmp.number,tmp.score FROM
+        user m LEFT JOIN departments dd ON m.deptid=dd.id
+        LEFT JOIN(
+        SELECT u.id,(ifnull(SUM(t.score),0)+ifnull(SUM(score2),0)) score,SUM(number) number
+        FROM report_user t,user u
+        WHERE t.userid=u.id AND t.`status`=2
+        <if test="ptime != ''">
+            AND t.ptime &gt;= #{ptime}
+        </if>
+        <if test="endtime != ''">
+            AND t.ptime &lt;= #{endtime}
+        </if>
+        <if test="isAu == 1">
+            AND t.type &gt; #{isAu}
+        </if>
+        GROUP BY t.userid
+        ORDER BY score DESC
+        ) tmp ON m.id=tmp.id
+        WHERE m.deptid IN (${deptids})
+        ORDER BY number DESC
+    </select> -->
+
+    <select id="taskReportDetailByUser" resultType="cn.net.easyinfo.report.entity.Report" parameterType="map">
+        SELECT t.id,t.ptime,t.address,t.score,t.number,t.markto mark,tt.`value`
+        FROM report_user t,report_type_big tt
+        WHERE t.typebig=tt.id AND t.type &gt; 1 AND t.`status`=2
+        and t.userid=#{userid}
+        <if test="ptime != ''">
+            AND t.ptime &gt;= #{ptime}
+        </if>
+        <if test="endtime != ''">
+            AND t.ptime &lt;= #{endtime}
+        </if>
+        ORDER BY t.ptime DESC
+    </select>
+
+<!--     <select id="getDeptByFid" parameterType="map" resultType="cn.net.easyinfo.report.entity.Department"> -->
+<!-- 		SELECT dd.id,dd.name,(SELECT id FROM departments WHERE fid=dd.id LIMIT 1) mark -->
+<!-- 		FROM departments dd WHERE dd.fid=#{deptid} -->
+<!-- 	</select> -->
+
+<!--     <select id="byDeptReport" resultType="cn.net.easyinfo.report.entity.Report" parameterType="map"> -->
+<!--         SELECT (ifnull(SUM(t.score),0)+ifnull(SUM(score2),0)) score,ifnull(SUM(number),0) number -->
+<!--         FROM report_user t,user u -->
+<!--         WHERE t.userid=u.id AND t.`status`=2 -->
+<!--         and u.deptid in (${deptids}) -->
+<!--         <if test="starttime != ''"> -->
+<!--             AND t.ptime &gt;= #{starttime} -->
+<!--         </if> -->
+<!--         <if test="endtime != ''"> -->
+<!--             AND t.ptime &lt;= #{endtime} -->
+<!--         </if> -->
+<!--     </select> -->
+
+    <!--<select id="taskReportScoreByuser" resultType="cn.net.easyinfo.report.entity.Report" parameterType="map">
+		SELECT m.id,m.name username,dd.`name` value,tmp.number,tmp.score FROM
+		user m LEFT JOIN department dd ON m.deptid=dd.id
+		LEFT JOIN(
+			SELECT u.id,(ifnull(SUM(t.score),0)+ifnull(SUM(score2),0)) score,SUM(number) number
+			FROM report_user t,user u
+			WHERE t.userid=u.id AND t.`status`=2
+			<if test="starttime != '' and endtime !='null'">
+				AND t.ptime &gt;= #{starttime}
+			</if>
+			<if test="endtime != '' and endtime !='null'">
+				AND t.ptime &lt;= #{endtime}
+			</if>
+			<if test="isAu == 1">
+				AND t.type &gt; #{isAu}
+			</if>
+			GROUP BY t.userid
+			ORDER BY score DESC
+		) tmp ON m.id=tmp.id
+		WHERE m.deptid IN (${deptids})
+		ORDER BY number DESC
+	</select>-->
+</mapper>

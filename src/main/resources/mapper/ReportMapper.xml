@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.net.easyinfo.mapper.ReportMapper" >
+    <resultMap id="BaseResultMap" type="cn.net.easyinfo.report.entity.Report" >
+        <id column="id" property="id" jdbcType="INTEGER" />
+        <result column="userid" property="userid" jdbcType="INTEGER" />
+        <result column="fid" property="fid" jdbcType="INTEGER" />
+        <result column="name" property="name" jdbcType="VARCHAR" />
+        <result column="number" property="number" jdbcType="INTEGER" />
+        <result column="address" property="address" jdbcType="VARCHAR" />
+        <result column="score" property="score" jdbcType="INTEGER" />
+        <result column="ptime" property="ptime" jdbcType="VARCHAR" />
+        <result column="endtime" property="endtime" jdbcType="VARCHAR" />
+        <result column="typeName" property="typeName" jdbcType="VARCHAR" />
+        <result column="type" property="type" jdbcType="INTEGER" />
+        <result column="typeAfter" property="typeAfter" jdbcType="TINYINT" />
+        <result column="mark" property="mark" jdbcType="VARCHAR" />
+        <result column="deptids" property="deptids" jdbcType="VARCHAR" />
+
+        <!--column="user" select="selectUser"-->
+        <association property="user" javaType="cn.net.easyinfo.entity.User" >
+            <id property="id" column="userid"/>
+            <result property="name" column="username"/>
+        </association>
+
+<!--        <collection property="depts" javaType="cn.net.easyinfo.entity.ReportType" column="deptids" select="selectDepartment">
+            <id property="id" column="deptids"/>
+            <result property="name" column="departmentName"/>
+        </collection>-->
+    </resultMap>
+
+    <select id="selectDepartment" resultType="cn.net.easyinfo.entity.ReportType">
+        select d.name from departments d left join report r on
+        d.id in (r.deptids)
+    </select>
+
+    <select id="selectUser" resultType="cn.net.easyinfo.entity.User">
+        select name from user
+    </select>
+
+    <select id="queryOrderByPage" resultMap="BaseResultMap" parameterType="map">
+        select r.id ,r.name,r.userid,r.address,r.typeName,r.ptime,r.endtime,r.number,r.mark,
+        u.name username,
+        case when r.endtime>now() then 0 else 1 end status
+        from report r,user u
+        where r.userid=u.id
+        <if test="name !=null and name !='' ">
+            and r.name like concat("%",#{name},"%")
+        </if>
+        order by r.endtime desc
+    </select>
+
+    <select id="getPublish" resultType="cn.net.easyinfo.report.entity.Report" parameterType="map">
+        SELECT mm.id,mm.number,mm.userid,mm.name,mm.score,
+        mm.address,mm.ptime,mm.endtime,mm.typeName,mm.mark,user.name username,
+        CASE WHEN mm.endtime>NOW() THEN 0 ELSE 1 END status
+        FROM report mm,user
+        WHERE mm.userid=user.id
+        and user.deptid in (${deptids})
+        <if test="ptime != null and ptime != ''">
+            AND mm.ptime &gt;= 	#{ptime}
+        </if>
+        <if test="endtime != null and endtime != ''">
+            AND mm.ptime &lt;= #{endtime}
+        </if>
+        ORDER BY mm.id DESC
+    </select>
+
+    <select id="getReceiveTask" resultType="cn.net.easyinfo.report.entity.Report" parameterType="map">
+        SELECT m.id,m.number number2,mm.userid,mm.id fid,mm.name,mm.number,mm.score,
+        mm.address,mm.ptime,mm.endtime,mm.typeName,mm.mark,user.name username,
+        CASE WHEN mm.endtime>NOW() THEN 0 ELSE 1 END status
+        FROM report_user m,report mm,user
+        WHERE m.reportid=mm.id AND mm.userid=user.id
+        and m.userid=#{userid}
+        <if test="ptime != null and ptime != ''">
+            AND mm.ptime &gt;= #{ptime}
+        </if>
+        <if test="endtime != null and endtime != ''">
+            AND mm.ptime &lt;= #{endtime}
+        </if>
+        <if test="type != null and type != ''">
+            AND mm.typeName = #{type}
+        </if>
+        ORDER BY mm.ptime DESC
+    </select>
+
+    <select id="getReportsByPage" resultMap="BaseResultMap" parameterType="map">
+        select r.id ,r.name,r.userid,r.address,r.typeName,r.ptime,r.endtime,r.number,r.mark,
+        u.name username,
+        case when r.endtime>now() then 0 else 1 end status
+        from report r,user u
+        where r.userid=u.id
+        <if test="name !=null and name !='' ">
+            and r.name like concat("%",#{name},"%")
+        </if>
+        <if test="page != null and page != '' and size != null and size != '' ">
+            order by limit #{page},#{size} r.endtime desc
+        </if>
+
+    </select>
+
+    <select id="getReport" resultType="cn.net.easyinfo.report.entity.Report" parameterType="map">
+        SELECT reportid id,COUNT(*) number3,SUM(m.number) number2,mm.address,
+        mm.number,mm.name,mm.typeName,mm.ptime,mm.endtime,u.name username,
+        CASE WHEN mm.endtime &gt; NOW() THEN 0 ELSE 1 END status
+        FROM report_user m,report mm,user u
+        WHERE m.reportid=mm.id AND mm.userid=u.id and u.deptid in (${deptids})
+        <if test="ptime != null and ptime != ''">
+            AND mm.ptime &gt; #{ptime}
+        </if>
+        <if test="endtime != null and endtime != ''">
+            AND mm.ptime &lt; #{endtime}
+        </if>
+        <if test="name != null and name != ''">
+            AND mm.name like concat("%",#{name},"%")
+        </if>
+        GROUP BY reportid
+        ORDER BY mm.ptime DESC
+    </select>
+
+    <select id="getUserByReport" resultType="cn.net.easyinfo.report.entity.Report" parameterType="map">
+		SELECT rr.id,rr.reportid fid,rr.userid,rr.number,uu.name,rr.number * r.score score
+		FROM report_user rr,user uu,report r
+		WHERE rr.userid=uu.id and rr.reportid=#{id} and rr.reportid=r.id
+		order by rr.number desc
+	</select>
+
+    <insert id="addReports" >
+        insert into report(name,address,userid,typeName,ptime,endtime,number,mark)
+        values
+        <foreach collection="reports" item="report" separator=",">
+            ( #{report.name},#{report.address},#{report.userid},
+            #{report.typeName},#{report.ptime},#{report.endtime},#{report.number},#{report.mark})
+        </foreach>
+    </insert>
+
+
+    <insert id="addReport" parameterType="map">
+        INSERT INTO report (userid,name,number,address,score,ptime,typeName,type,typeAfter,mark,deptids,endtime)
+        VALUES (#{userid},#{name},#{number},#{address},#{score},NOW(),#{typeName},#{type},#{typeAfter},#{mark},#{deptids},#{endtime})
+        <selectKey resultType="java.lang.Integer"  order="AFTER" keyProperty="id" >
+            SELECT LAST_INSERT_ID() AS id
+        </selectKey>
+    </insert>
+
+    <insert id="insertSelectiveReturnId" parameterType="cn.net.easyinfo.report.entity.Report" >
+        <selectKey resultType="java.lang.Integer" keyProperty="id" order="AFTER" >
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+        insert into report
+        <trim prefix="(" suffix=")" suffixOverrides="," >
+            <if test="userid != null" >
+                userid,
+            </if>
+            <if test="fid != null" >
+                fid,
+            </if>
+            <if test="name != null" >
+                name,
+            </if>
+            <if test="number != null" >
+                number,
+            </if>
+            <if test="address != null" >
+                address,
+            </if>
+            <if test="score != null" >
+                score,
+            </if>
+            <if test="ptime != null" >
+                ptime,
+            </if>
+            <if test="endtime != null" >
+                endtime,
+            </if>
+            <if test="typeName != null" >
+                typeName,
+            </if>
+            <if test="type != null" >
+                type,
+            </if>
+            <if test="typeAfter != null" >
+                typeAfter,
+            </if>
+            <if test="mark != null" >
+                mark,
+            </if>
+            <if test="deptids != null" >
+                deptids,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides="," >
+            <if test="userid != null" >
+                #{userid,jdbcType=INTEGER},
+            </if>
+            <if test="fid != null" >
+                #{fid,jdbcType=INTEGER},
+            </if>
+            <if test="name != null" >
+                #{name,jdbcType=VARCHAR},
+            </if>
+            <if test="number != null" >
+                #{number,jdbcType=INTEGER},
+            </if>
+            <if test="address != null" >
+                #{address,jdbcType=VARCHAR},
+            </if>
+            <if test="score != null" >
+                #{score,jdbcType=INTEGER},
+            </if>
+            <if test="ptime != null" >
+                #{ptime,jdbcType=VARCHAR},
+            </if>
+            <if test="endtime != null" >
+                #{endtime,jdbcType=VARCHAR},
+            </if>
+            <if test="typeName != null" >
+                #{typeName,jdbcType=VARCHAR},
+            </if>
+            <if test="type != null" >
+                #{type,jdbcType=INTEGER},
+            </if>
+            <if test="typeAfter != null" >
+                #{typeAfter,jdbcType=TINYINT},
+            </if>
+            <if test="mark != null" >
+                #{mark,jdbcType=VARCHAR},
+            </if>
+            <if test="deptids != null" >
+                #{deptids,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+
+    <select id="findUsers" resultType="cn.net.easyinfo.report.entity.Report" parameterType="map">
+		SELECT id,realName,tel FROM user WHERE deptid in (${deptids})
+	</select>
+
+    <select id="reportDetail" resultType="cn.net.easyinfo.report.entity.Report" parameterType="map">
+		SELECT t.*,(SELECT COUNT(*) FROM report_user t1 WHERE t1.reportid=t.id AND t1.isRead=1) readNumber,
+			(SELECT COUNT(*) FROM report_user t1 WHERE t1.reportid=t.id AND t1.number>0) zhixPersonNumber,
+			(SELECT SUM(number) FROM report_user t1 WHERE t1.reportid=t.id) zhixNumber,
+			(SELECT COUNT(*) FROM report_user t1 WHERE t1.reportid=t.id) pnumber
+		FROM report t
+		WHERE t.id = #{id}
+	</select>
+
+    <select id="reportByDept" resultType="cn.net.easyinfo.report.entity.Report" parameterType="map">
+		SELECT dt.name,SUM(t.number) number
+		FROM report_user t,user u,department dt
+		WHERE t.userid=u.id AND u.deptid=dt.id AND t.reportid=#{id}
+		GROUP BY dt.id
+		ORDER BY number DESC
+		limit ${start},${limit}
+	</select>
+
+    <select id="reportByJF" resultType="cn.net.easyinfo.report.entity.Report" parameterType="map">
+		SELECT rr.id,rr.reportid fid,rr.userid,uu.name,(r.score+rr.score) score
+		FROM report_user rr,user uu,report r
+		WHERE rr.userid=uu.id and rr.reportid=#{id} and rr.reportid=r.id
+		order by score desc
+		limit ${start},${limit}
+	</select>
+
+    <select id="reportByLV" resultType="cn.net.easyinfo.report.entity.Report" parameterType="map">
+		SELECT tt.id,u.name,tt.addtime,
+			round((UNIX_TIMESTAMP(tt.addtime)-UNIX_TIMESTAMP(r.ptime))/60) number
+		FROM report_user t,report_user_log tt,user u,report r
+		WHERE t.id=tt.reportid AND t.reportid=#{id} and t.reportid=r.id
+			AND t.userid=u.id
+		GROUP BY t.userid
+		ORDER BY addtime ASC
+		limit ${start},${limit}
+	</select>
+
+    <insert id="addNotice" parameterType="cn.net.easyinfo.entity.Notice">
+		INSERT INTO report_notice (notice_content, add_time,user_id)
+	VALUES
+		(
+			#{noticeContent},NOW(),#{userId})
+	</insert>
+
+<!--    <insert id="addReportUsers" >
+        INSERT INTO report_user (userid,reportid,ptime,status)
+        values
+        <foreach collection="maps" item="map" separator=",">
+            ( #{map.userid},#{map.reportid},Now(),2)
+        </foreach>
+    </insert>-->
+
+    <insert id="addReportUsers" parameterType="map">
+		INSERT INTO report_user (userid,reportid,ptime,status) VALUES (#{userid},#{reportid},NOW(),2)
+	</insert>
+
+    <!-- <select id="getMyReprotType" resultType="cn.net.easyinfo.entity.Report" parameterType="map">
+		SELECT tt.id,tt.`value` FROM report_user t,report_type_big tt
+		WHERE t.typebig=tt.id AND t.userid=#{userid}
+		GROUP BY tt.id
+		LIMIT 50
+	</select> -->
+
+    <update id="updateReportRead" parameterType="map">
+		update report_user set isRead=1 where userid=#{userid}
+	</update>
+
+    <!-- <select id="getMyReprotType" resultType="cn.net.easyinfo.entity.Report" parameterType="map">
+		SELECT tt.id,tt.`value` FROM report_user t,report_type_big tt
+		WHERE t.typebig=tt.id AND t.userid=#{userid}
+		GROUP BY tt.id
+		LIMIT 50
+	</select> -->
+</mapper>

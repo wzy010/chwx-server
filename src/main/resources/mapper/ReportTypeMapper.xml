@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.net.easyinfo.mapper.ReportTypeMapper" >
+  <resultMap id="BaseResultMap" type="cn.net.easyinfo.entity.ReportType" >
+    <id column="id" property="id" jdbcType="INTEGER" />
+    <result column="value" property="value" jdbcType="VARCHAR" />
+    <result column="userid" property="userid" jdbcType="INTEGER" />
+    <result column="deptid" property="deptid" jdbcType="INTEGER" />
+  </resultMap>
+
+
+  <select id="getMyReprotType" resultType="cn.net.easyinfo.report.entity.Report" parameterType="map">
+		SELECT tt.id,tt.`value` FROM report_user t,report_type_big tt
+		WHERE t.typebig=tt.id AND t.userid=#{userid}
+		GROUP BY tt.id
+	</select>
+
+<select id="getBigType" parameterType="map" resultType="cn.net.easyinfo.entity.ReportTypeBig">
+    select id,value from report_type_big
+    <where>
+      <if test="type != null and type != '' ">
+              type = #{type} and score &gt;0
+      </if>
+    </where>
+</select>
+
+  <select id="myReport" resultType="cn.net.easyinfo.report.entity.Report" parameterType="map">
+		SELECT t.id,u.name username,t.number,t.status,t.markto mark,t.mark value,
+			t.address,t.ptime,tt.value typeName,(t.score+t.score2) score
+		FROM report_user t,report_type_big tt,user u
+		WHERE t.typebig=tt.id and t.type &gt; 1 and t.userid=u.id and u.deptid IN (${deptids})
+		<if test="starttime != null and starttime != '' and starttime != 'null'">
+			AND t.ptime &gt;= #{starttime}
+		</if>
+		<if test="endtime != null and endtime != '' and endtime != 'null'">
+			AND t.ptime &lt;= #{endtime}
+		</if>
+		<if test="type != null and type != '' and type != '-1'">
+			AND tt.id = #{type}
+		</if>
+		<if test="status != null and status != '' and status != '-1'">
+			AND t.status = #{status}
+		</if>
+		ORDER BY t.id DESC
+	</select>
+
+	<delete id="delmyreport">
+        DELETE FROM report_user WHERE id IN
+        <foreach collection="ids" separator="," open="(" close=")" item="id">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="getReportTypeName" resultType="cn.net.easyinfo.report.entity.Report">
+        select distinct typeName from report
+    </select>
+    <select id="getType" resultType="cn.net.easyinfo.report.entity.Report">
+		SELECT id,value FROM report_type
+	</select>
+
+<!--   <select id="myReport" resultType="cn.net.easyinfo.report.entity.Report" parameterType="map"> -->
+<!-- 		SELECT t.id,u.name username,t.number,t.status,t.markto mark,t.mark value, -->
+<!-- 			t.address,t.ptime,tt.value typeName,(t.score+t.score2) score -->
+<!-- 		FROM report_user t,report_type_big tt,user u -->
+<!-- 		WHERE t.typebig=tt.id and t.type &gt; 1 and t.userid=u.id and u.deptid IN (${deptids}) -->
+<!-- 		<if test="starttime != null and starttime != '' and starttime != 'null'"> -->
+<!-- 			AND t.ptime &gt;= #{starttime} -->
+<!-- 		</if> -->
+<!-- 		<if test="endtime != null and endtime != '' and endtime != 'null'"> -->
+<!-- 			AND t.ptime &lt;= #{endtime} -->
+<!-- 		</if> -->
+<!-- 		<if test="type != null and type != '' and type != '-1'"> -->
+<!-- 			AND tt.id = #{type} -->
+<!-- 		</if> -->
+<!-- 		<if test="status != null and status != '' and status != '-1'"> -->
+<!-- 			AND t.status = #{status} -->
+<!-- 		</if> -->
+<!-- 		ORDER BY t.id DESC -->
+<!-- 	</select> -->
+
+<!-- 	<delete id="delmyreport"> -->
+<!--         DELETE FROM report_user WHERE id IN -->
+<!--         <foreach collection="ids" separator="," open="(" close=")" item="id"> -->
+<!--             #{id} -->
+<!--         </foreach> -->
+<!--     </delete> -->
+</mapper>

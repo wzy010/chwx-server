@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.net.easyinfo.mapper.DeptRightMapper">
+    <insert id="saveDeptRight" parameterType="map">
+		INSERT INTO dept_right (deptid, currentNum)
+		VALUES (${deptid}, #{currentNum})
+	</insert>
+</mapper>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.net.easyinfo.mapper.CorpusMapper">
+
+    <resultMap id="BaseResultMap" type="cn.net.easyinfo.corpus.entity.Corpus">
+        <id property="id" column="id"/>
+        <result column="name" property="name"/>
+        <result column="fid" property="fid"/>
+        <result column="uid" property="uid"/>
+        <result column="flag" property="flag"/>
+        <result column="createTime" property="createTime"/>
+        <collection property="children" ofType="cn.net.easyinfo.corpus.entity.Corpus"
+                    select="cn.net.easyinfo.mapper.CorpusMapper.getCorpusByFid" column="{fid=id,uid=uid}">
+        </collection>
+    </resultMap>
+
+    <select id="getCorpusByFid" resultMap="BaseResultMap" parameterType="map">
+        select * from corpus_store where 1=1
+        <choose>
+            <when test="fid==-1">and fid=#{fid}</when>
+            <otherwise>and uid=#{uid} and fid=#{fid}</otherwise>
+        </choose>
+    </select>
+    <insert id="insertCorpus" parameterType="cn.net.easyinfo.corpus.entity.Corpus">
+        <selectKey resultType="java.lang.Integer" keyProperty="id" order="AFTER" >
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+        INSERT INTO corpus_store(fid,name,uid,createTime) VALUES(#{fid},#{name},#{uid},NOW())
+    </insert>
+    <delete id="delCorpus">
+        DELETE t.*,tt.* FROM corpus_store t LEFT JOIN corpus_data tt ON t.id=tt.cid
+        WHERE t.id=#{id}
+    </delete>
+    <select id="getCorpusDataByCidCount" resultType="int">
+        select count(*) from corpus_data where 1=1
+        <if test="cid !=null and cid > 1">
+            and cid=#{cid}
+        </if>
+        <if test="word!=null and word != ''">
+            and  content like '%${word}%'
+        </if>
+    </select>
+    <select id="getCorpusDataByCid" parameterType="map" resultType="cn.net.easyinfo.corpus.entity.CorpusData">
+        select * from corpus_data where 1=1
+        <if test="cid !=null and cid > 1">
+           and cid=#{cid}
+        </if>
+        <if test="word!=null and word != ''">
+            and  content like '%${word}%'
+        </if>
+        limit ${start},${limit}
+    </select>
+    <delete id="delCorpusDataByIds">
+        delete from corpus_data where id IN
+        <foreach collection="ids.split(',')" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+    <insert id="addCorpusData" parameterType="java.util.List">
+        INSERT corpus_data(content,cid,insert_time) VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.content},#{item.cid},NOW())
+        </foreach>
+    </insert>
+    <update id="updateCorpusData" parameterType="cn.net.easyinfo.corpus.entity.CorpusData">
+        update corpus_data set content=#{content} where id=#{id}
+    </update>
+
+</mapper>

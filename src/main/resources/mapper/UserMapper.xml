@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.net.easyinfo.mapper.UserMapper">
+
+    <select id="getAllUsers" resultType="cn.net.easyinfo.common.vo.UserVo">
+        select id,name from user;
+    </select>
+
+    <select id="getUnitsubAllUserNumber" resultType="int" parameterType="map">
+		SELECT COUNT(*) FROM user WHERE deptid IN (${deptids})
+	</select>
+
+    <select id="isManager" parameterType="int" resultType="int">
+		SELECT isManager FROM role WHERE id = #{roleid}
+	</select>
+
+    <!-- 获得部门中的用户信息 -->
+    <select id="getUnitUser" resultType="cn.net.easyinfo.entity.LoginUser" parameterType="map">
+        SELECT u.id,u.`name`, u.realName,u.email,u.tel,u.deptid, u.sex, u.descript, u.level,u.grade,u.fid
+        ,d.name deptName, r.id roleId, r.`value` roleName, r.isManager, r.showName showRoleName, d.setAdmin
+        FROM `user` u
+        LEFT JOIN role r ON r.id = u.roleid
+        LEFT JOIN departments d ON d.id = u.deptid
+        WHERE 1 = 1
+        <choose>
+            <when test="node ==null or node == ''">
+                AND u.deptid IS NULL
+            </when>
+            <otherwise> AND u.deptid IN (${node})</otherwise>
+        </choose>
+        <if test="username != null and username != ''">
+            AND u.`name` LIKE CONCAT(CONCAT('%', #{username}), '%')
+        </if>
+        <if test="realName != null and realName != ''">
+            AND u.realName LIKE CONCAT(CONCAT('%', #{realName}), '%')
+        </if>
+        <if test="tel != null and tel != ''">
+            AND u.tel LIKE CONCAT(CONCAT('%', #{tel}), '%')
+        </if>
+        ORDER BY u.deptid DESC,u.id DESC
+    </select>
+
+    <select id="getDepartNames" resultType="string" parameterType="map">
+		SELECT GROUP_CONCAT(name) FROM department WHERE id in (${ids})
+	</select>
+    <update id="modifyUserSubPwd" parameterType="map">
+		UPDATE user SET password = #{pwd} WHERE id =#{id}
+	</update>
+    <select id="getNation" resultType="cn.net.easyinfo.entity.Nation">
+		SELECT n.id, n.name FROM nation n
+	</select>
+    <select id="getPolitical" resultType="cn.net.easyinfo.entity.Political">
+		SELECT p.id, p.`value` FROM political p
+	</select>
+    <select id="getUserType" resultType="cn.net.easyinfo.entity.UserType">
+		SELECT ut.id, ut.value FROM user_type ut
+	</select>
+    <select id="getDegree" resultType="cn.net.easyinfo.entity.Degree">
+		SELECT d.id, d.`value` FROM degree d
+	</select>
+
+    <select id="selectDetailById" parameterType="int" resultType="cn.net.easyinfo.entity.LoginUser">
+		SELECT u.id,u.`name`, u.realName,u.email,u.tel,u.deptid, u.sex, u.descript, u.degree,
+			u.birthday, u.QQ, u.micro, u.brankName, u.brankAccount, u.political, u.nation,
+			u.job,u.userType,u.fid ,d.name deptName, r.id roleId, ut.value userTypeValue,
+			r.`value` roleName, r.isManager, r.showName showRoleName, n.name nationName,
+			de.value degreeValue, p.value politicalValue
+		FROM `user` u
+		LEFT JOIN department d
+		ON  u.deptid = d.id
+		LEFT JOIN role r
+		ON u.roleid = r.id
+		LEFT JOIN nation n
+		ON u.nation = n.id
+		LEFT JOIN degree de
+		ON u.degree = de.id
+		LEFT JOIN political p
+		ON u.political = p.id
+		LEFT JOIN user_type ut
+		ON u.userType = ut.id
+		WHERE u.id = #{id}
+	</select>
+
+    <select id="vaildateUpdateUser" resultType="cn.net.easyinfo.entity.LoginUser" parameterType="map">
+		SELECT u.areaid,u.deptid,u.descript,u.email,
+				u.fid,u.grade,u.id,u.`level`,u.`name`,
+				u.`password`,u.realName,
+				u.sex,u.tel
+		FROM `user` u
+		WHERE u.name = #{name}
+		AND u.id != #{id}
+	</select>
+
+    <!-- 修改用户信息 -->
+    <update id="updateUserById" parameterType="map">
+        UPDATE `user`
+        SET
+        <if test="name != null and name != ''">
+            `name` = #{name}
+        </if>
+        <if test="realName != null and realName != ''">
+            , realName = #{realName}
+        </if>
+        <if test="deptid != null and deptid != ''">
+            , deptid = #{deptid}
+        </if>
+        <if test="email != null and email != ''">
+            , email = #{email}
+        </if>
+        <if test="tel != null and tel != ''">
+            , tel = #{tel}
+        </if>
+        <if test="role != null and role != ''">
+            , roleid = #{role}
+        </if>
+        <if test="descript != null and descript != ''">
+            , descript = #{descript}
+        </if>
+        <if test="sex != null and sex != ''">
+            , sex = #{sex}
+        </if>
+        <if test="political != null and political != ''">
+            , political = #{political}
+        </if>
+        <if test="nation != null and nation != ''">
+            , nation = #{nation}
+        </if>
+        <if test="degree != null and degree != ''">
+            , degree = #{degree}
+        </if>
+        <if test="qq != null and qq != ''">
+            , QQ = #{qq}
+        </if>
+        <if test="micro != null and micro != ''">
+            , micro = #{micro}
+        </if>
+        <if test="brankAccount != null and brankAccount != ''">
+            , brankAccount = #{brankAccount}
+        </if>
+        <if test="brankName != null and brankName != ''">
+            , brankName = #{brankName}
+        </if>
+        <if test="job != null and job != ''">
+            , job = #{job}
+        </if>
+        <if test="userType!= null and userType != ''">
+            , userType = #{userType}
+        </if>
+        <if test="birthday != null and birthday != ''">
+            , birthday = #{birthday}
+        </if>
+        WHERE id = ${id}
+    </update>
+    <!-- 根据真实姓名查询用户名是否已存在 -->
+    <select id="selLikeRealByName" resultType="cn.net.easyinfo.entity.LoginUser" parameterType="map">
+		SELECT  u.id, u.areaid,u.deptid,u.descript,u.email,
+				u.fid,u.grade,u.id,u.`level`,u.`name`,
+				u.`password`,u.realName,
+				u.sex,u.tel, d.`name` deptName
+		FROM `user` u
+		LEFT JOIN department d
+		ON d.id = u.deptid
+		WHERE u.name = #{realName} limit 1
+	</select>
+
+    <!-- 增加用户 -->
+    <insert id="addUser" parameterType="map">
+		INSERT INTO `user` (fid, name, realname, password, deptid,
+		 email, tel, sex, descript, roleid, political, nation, degree,
+		 QQ, micro, brankAccount, brankName, job, userType, birthday)
+		VALUES (#{fid}, #{name}, #{realName}, #{password}, #{deptid},
+		 #{email}, #{tel}, #{sex}, #{descript}, #{role}, #{political},
+		 #{nation}, #{degree}, #{qq}, #{micro}, #{brankAccount}, #{brankName}, #{job},
+		 #{userType}, #{birthday})
+	</insert>
+
+    <!--删除网评员-->
+    <delete id="deleteUserById">
+        DELETE FROM user WHERE id IN
+        <foreach collection="ids" separator="," open="(" close=")" item="id">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!--修改用户部门-->
+    <update id="updateDepteById">
+        update user set deptid = #{deptid} where id in
+        <foreach collection="ids" open="(" close=")" separator="," item="id">
+            #{id}
+        </foreach>
+    </update>
+</mapper>

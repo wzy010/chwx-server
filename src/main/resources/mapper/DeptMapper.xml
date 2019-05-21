@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.net.easyinfo.mapper.DeptMapper">
+    <resultMap id="BaseResultMap" type="cn.net.easyinfo.entity.Department">
+        <id property="id" column="id"/>
+        <result column="name" property="name"/>
+        <result column="parentId" property="parentId"/>
+        <result column="isParent" property="isParent"/>
+        <collection property="children" ofType="cn.net.easyinfo.entity.Department" select="cn.net.easyinfo.mapper.DeptMapper.getDepByPid" column="id">
+        </collection>
+    </resultMap>
+</mapper>
